@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+
+import os
+import subprocess
+import sys
+import tempfile
+
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+plt.rcdefaults()
+plt.rc('figure', facecolor='1.0')
+
+
+def main():
+    eventsfile = os.path.join(tempfile.gettempdir(),
+                              'events_{}.hdf'.format(np.random.randint(2**31))
+                              )
+    cmd = list('trento --output {}'.format(eventsfile).split()) + sys.argv[1:]
+    subprocess.check_call(cmd)
+
+    with h5py.File(eventsfile, 'r') as f:
+        n = int(np.ceil(np.sqrt(len(f))))
+        fig, axes = plt.subplots(ncols=n, nrows=n, figsize=(16, 16))
+
+        #events = sorted(f.values(), key=lambda d: d.attrs['mult'],
+        #                reverse=True)
+        events = list(f.values())
+ 
+        for ev, ax in zip(events, axes.flat):
+            ax.imshow(ev, interpolation='none', cmap=plt.cm.Blues, vmin=0., vmax=np.max(ev))
+            ax.axis('off')
+            info = '\n'.join(('{} = {:.3g}'.format(k, v)
+                              for k, v in list(ev.attrs.items())[0:5]))
+            #ax.annotate(info, (.03, .97), xycoords='axes fraction',
+            #            ha='left', va='top', color='.3', size=20)
+
+    plt.tight_layout(pad=0.5)
+    plt.savefig("plot.pdf")
+    #plt.show()
+
+    os.remove(eventsfile)
+
+
+if __name__ == "__main__":
+    main()
